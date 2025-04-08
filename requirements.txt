@@ -1,0 +1,8 @@
+opencv-python
+numpy
+pytesseract
+easyocr
+elasticsearch
+sentence-transformers
+PyQt6
+loguru
