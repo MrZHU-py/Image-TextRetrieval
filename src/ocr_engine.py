@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\ocr_engine.py
+FilePath: \\Image-TextRetrieval\\src\\ocr_engine.py
 Author: ZPY
 TODO: 整合 PaddleOCR 和预处理模块
 '''
@@ -30,13 +30,17 @@ def extract_text_easyocr(image):
 
 def extract_text_paddleocr(image_path):
     """使用 PaddleOCR 进行文本识别"""
-    # 加载图像为 NumPy 数组
-    image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-    if image is None:
-        raise ValueError(f"Failed to load image: {image_path}")
+    try:
+        # 加载图像为 NumPy 数组
+        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        if image is None:
+            raise ValueError(f"Failed to load image: {image_path}")
 
-    # 使用 PaddleOCR 进行识别
-    ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 支持中文
-    result = ocr.ocr(image, cls=True)
-    extracted_text = "\n".join([line[1][0] for line in result[0]])
-    return extracted_text
+        # 使用 PaddleOCR 进行识别
+        ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 支持中文
+        result = ocr.ocr(image, cls=True)
+        extracted_text = "\n".join([line[1][0] for line in result[0]])
+        return extracted_text
+    except Exception as e:
+        print(f"Error in extract_text_paddleocr: {e}")
+        return ""

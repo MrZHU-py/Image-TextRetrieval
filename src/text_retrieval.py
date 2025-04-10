@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\search_engine.py
+FilePath: \Image-TextRetrieval\src\text_retrieval.py
 Author: ZPY
 TODO: 连接 Elasticsearch，提供索引和搜索功能
 '''
@@ -12,22 +12,19 @@ es = Elasticsearch([{'host': config.ELASTICSEARCH_HOST, 'port': config.ELASTICSE
 model = SentenceTransformer(config.SENTENCE_BERT_MODEL)  # 加载 SBERT 模型
 
 def index_text(text, doc_id):
-    """ 索引文本到 Elasticsearch """
-    # 生成文本嵌入
+    """索引文本到 Elasticsearch"""
     embedding = model.encode(text).tolist()
     doc = {
         "content": text,
-        "embedding": embedding  # 存储嵌入向量
+        "embedding": embedding
     }
-    es.index(index=config.ELASTICSEARCH_INDEX, id=doc_id, body=doc)
+    es.index(index="text_index", id=doc_id, body=doc)
 
-def search_text(query, top_k=10):
-    """ 在 Elasticsearch 中进行语义搜索 """
-    # 生成查询文本的嵌入
+def search_text(query, top_k=5):
+    """在 Elasticsearch 中进行文本检索"""
     query_embedding = model.encode(query).tolist()
-    # 构造向量搜索的查询
     response = es.search(
-        index=config.ELASTICSEARCH_INDEX,
+        index="text_index",
         body={
             "size": top_k,
             "query": {

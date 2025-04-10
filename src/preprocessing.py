@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\preprocessing.py
+FilePath: \\Image-TextRetrieval\\src\\preprocessing.py
 Author: ZPY
 TODO: 图像预处理模块
 '''
