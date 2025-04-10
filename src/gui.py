@@ -1,14 +1,13 @@
 '''
-FilePath: \TextRetrieval\src\gui.py
+FilePath: \Image-TextRetrieval\src\gui.py
 Author: ZPY
 TODO: 通过 OCR 解析图片文本，并在 Elasticsearch 中进行检索
 '''
-from PyQt6.QtWidgets import QApplication, QLabel, QPushButton, QFileDialog, QTextEdit, QVBoxLayout, QWidget
-import cv2
-import sys
-from src.ocr_engine import extract_text_tesseract
+from PyQt6.QtWidgets import QLabel, QPushButton, QFileDialog, QTextEdit, QVBoxLayout, QWidget
+from src.ocr_engine import extract_text_tesseract, extract_text_paddleocr
 from src.search_engine import index_text, search_text
 import uuid
+import cv2
 
 class ImageTextRetrievalApp(QWidget):
     def __init__(self):
@@ -44,18 +43,21 @@ class ImageTextRetrievalApp(QWidget):
         """ 处理图片，进行 OCR 识别并索引到 Elasticsearch """
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image File", "", "Images (*.png *.jpg *.jpeg)")
         if file_path:
-            image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-            extracted_text = extract_text_tesseract(image)
+            # OCR 识别
+            extracted_text = extract_text_paddleocr(file_path)
             self.text_display.setText(extracted_text)
 
             # 生成唯一 ID 进行索引
             doc_id = str(uuid.uuid4())
             index_text(extracted_text, doc_id)
 
-            # 进行搜索
-            search_results = search_text(extracted_text)
-            formatted_results = self.format_search_results(search_results)
-            self.search_results.setText(formatted_results)
+            # 进行语义搜索
+            try:
+                search_results = search_text(extracted_text, top_k=5)
+                formatted_results = self.format_search_results(search_results)
+                self.search_results.setText(formatted_results)
+            except Exception as e:
+                self.search_results.setText(f"Search failed: {e}")
 
     def format_search_results(self, search_results):
         """ 格式化检索结果，加入序号和分隔符 """

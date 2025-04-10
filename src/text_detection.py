@@ -1,5 +1,5 @@
 '''
-FilePath: \TextRetrieval\src\text_detection.py
+FilePath: \\Image-TextRetrieval\\src\\text_detection.py
 Author: ZPY
 TODO: 
 '''
