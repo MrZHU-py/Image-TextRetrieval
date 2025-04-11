@@ -5,7 +5,7 @@ TODO: 图像预处理模块
 '''
 import cv2
 import numpy as np
-from ocr_engine import extract_text_tesseract
+from src.ocr_engine import extract_text_tesseract
 
 def is_screenshot(image):
     """
@@ -35,9 +35,15 @@ def preprocess_image(image_path_or_array):
     """
     # 如果输入是路径，加载图像
     if isinstance(image_path_or_array, str):
-        image = cv2.imread(image_path_or_array, cv2.IMREAD_COLOR)
+        # 使用 open 和 cv2.imdecode 加载图片，解决中文路径问题
+        with open(image_path_or_array, 'rb') as f:
+            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
     else:
         image = image_path_or_array
+
+    if image is None:
+        raise ValueError(f"无法加载图像，请检查路径或文件格式：{image_path_or_array}")
 
     # 判断是否为截图
     if is_screenshot(image):

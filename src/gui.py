@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\gui.py
+FilePath: \\Image-TextRetrieval\\src\\gui.py
 Author: ZPY
 TODO: 使用 QStackedWidget 管理界面，修复界面叠加问题
 '''
@@ -15,12 +15,12 @@ class ImageTextRetrievalApp(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Image Text and Image Retrieval")
+        self.setWindowTitle("Image-Text Retrieval 基于图像的文本检索系统")
         self.setGeometry(100, 100, 800, 600)
 
         # 创建菜单栏
         menu_bar = self.menuBar()
-        mode_menu = menu_bar.addMenu("Mode")
+        mode_menu = menu_bar.addMenu("模式")
 
         # 添加菜单选项
         text_search_action = mode_menu.addAction("文搜文")

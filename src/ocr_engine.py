@@ -29,7 +29,7 @@ def extract_text_easyocr(image):
     return " ".join([res[1] for res in results])
 
 def extract_text_paddleocr(image_path):
-    """使用 PaddleOCR 进行文本识别"""
+    """使用 PaddleOCR 提取文本"""
     try:
         # 使用 open 和 cv2.imdecode 加载图片，解决中文路径问题
         with open(image_path, 'rb') as f:
@@ -37,11 +37,14 @@ def extract_text_paddleocr(image_path):
             image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
         if image is None:
-            raise ValueError(f"Failed to load image: {image_path}")
+            raise ValueError(f"无法加载图像，请检查路径或文件格式：{image_path}")
 
-        # 使用 PaddleOCR 进行识别
+        # 使用 PaddleOCR 进行文本提取
+        from paddleocr import PaddleOCR
         ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 支持中文
         result = ocr.ocr(image, cls=True)
+
+        # 提取文本
         extracted_text = "\n".join([line[1][0] for line in result[0]])
         return extracted_text
     except Exception as e:
