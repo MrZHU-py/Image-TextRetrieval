@@ -1,3 +1,8 @@
+'''
+FilePath: \Image-TextRetrieval\src\pages\text_search_page.py
+Author: ZPY
+TODO: 文搜文界面
+'''
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTextEdit, QLabel, QFileDialog
 from src.image_operations import handle_text_retrieval
 from src.result_formatter import format_search_results

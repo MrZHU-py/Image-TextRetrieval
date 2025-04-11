@@ -5,6 +5,7 @@ TODO: 图像预处理模块
 '''
 import cv2
 import numpy as np
+from ocr_engine import extract_text_tesseract
 
 def is_screenshot(image):
     """

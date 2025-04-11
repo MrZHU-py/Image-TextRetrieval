@@ -3,10 +3,7 @@ FilePath: \Image-TextRetrieval\src\gui.py
 Author: ZPY
 TODO: 使用 QStackedWidget 管理界面，修复界面叠加问题
 '''
-from PyQt6.QtWidgets import QLabel, QPushButton, QFileDialog, QTextEdit, QVBoxLayout, QHBoxLayout, QWidget, QMenuBar, QMainWindow, QStackedWidget
-from PyQt6.QtGui import QPixmap
-from src.image_operations import handle_text_retrieval, handle_image_retrieval
-from src.result_formatter import format_search_results, format_image_search_results
+from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QApplication
 import sys
 from src.pages.text_search_page import TextSearchPage
 from src.pages.image_search_page import ImageSearchPage

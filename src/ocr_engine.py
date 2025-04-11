@@ -10,7 +10,7 @@ from PIL import Image  # 导入 Pillow
 import numpy as np
 import config
 from paddleocr import PaddleOCR
-from src.preprocessing import preprocess_image
+import os
 
 # 设置 Tesseract 位置
 pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
@@ -31,8 +31,11 @@ def extract_text_easyocr(image):
 def extract_text_paddleocr(image_path):
     """使用 PaddleOCR 进行文本识别"""
     try:
-        # 加载图像为 NumPy 数组
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        # 使用 open 和 cv2.imdecode 加载图片，解决中文路径问题
+        with open(image_path, 'rb') as f:
+            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
         if image is None:
             raise ValueError(f"Failed to load image: {image_path}")
 

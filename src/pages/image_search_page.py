@@ -1,4 +1,9 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QFileDialog, QScrollArea
+'''
+FilePath: \Image-TextRetrieval\src\pages\image_search_page.py
+Author: ZPY
+TODO: 图搜图界面
+'''
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QScrollArea
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 import os
@@ -11,17 +16,25 @@ class ImageSearchPage(QWidget):
         self.initUI()
 
     def initUI(self):
-        layout = QVBoxLayout()
+        # 主布局：水平布局，左侧为上传区域，右侧为检索结果
+        main_layout = QHBoxLayout()
+
+        # 左侧布局：上传图片和显示区域
+        left_layout = QVBoxLayout()
 
         # 上传图片按钮和显示区域
         self.image_label = QLabel(self)
         self.image_label.setText("No Image Uploaded")
-        self.image_label.setFixedSize(300, 300)
+        self.image_label.setFixedSize(400, 400)  # 调整上传图片显示区域大小
         self.image_label.setStyleSheet("border: 1px solid black;")
         self.upload_image_btn = QPushButton("Upload Image", self)
         self.upload_image_btn.clicked.connect(self.search_similar_images)
 
-        # 滑动区域显示检索结果
+        # 添加到左侧布局
+        left_layout.addWidget(self.image_label)
+        left_layout.addWidget(self.upload_image_btn)
+
+        # 右侧布局：检索结果
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.results_container = QWidget()
@@ -29,12 +42,15 @@ class ImageSearchPage(QWidget):
         self.results_container.setLayout(self.results_layout)
         self.scroll_area.setWidget(self.results_container)
 
-        # 布局
-        layout.addWidget(self.image_label)
-        layout.addWidget(self.upload_image_btn)
-        layout.addWidget(QLabel("Search Results:"))
-        layout.addWidget(self.scroll_area)
-        self.setLayout(layout)
+        # 设置滚动区域的宽度
+        self.scroll_area.setFixedWidth(300)
+
+        # 添加到主布局
+        main_layout.addLayout(left_layout)
+        main_layout.addWidget(self.scroll_area)
+
+        # 设置主布局
+        self.setLayout(main_layout)
 
     def search_similar_images(self):
         """上传图片并进行图像相似性检索"""
@@ -44,6 +60,9 @@ class ImageSearchPage(QWidget):
             if not file_path:
                 print("No file selected.")
                 return
+
+            # 确保路径兼容性（解决中文路径问题）
+            file_path = os.path.normpath(file_path)
 
             # 显示上传的图片
             pixmap = QPixmap(file_path)
@@ -66,7 +85,7 @@ class ImageSearchPage(QWidget):
                 if os.path.exists(image_path):
                     result_label = QLabel(self)
                     result_pixmap = QPixmap(image_path)
-                    result_pixmap = result_pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio)
+                    result_pixmap = result_pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio)  # 调整检索结果图片大小
                     result_label.setPixmap(result_pixmap)
                     self.results_layout.addWidget(result_label)
         except Exception as e:

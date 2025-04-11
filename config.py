@@ -11,9 +11,18 @@ TESSERACT_CMD = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 # Elasticsearch 配置
 ELASTICSEARCH_HOST = "localhost"
 ELASTICSEARCH_PORT = 9200
-ELASTICSEARCH_INDEX = "text_retrieval"
 
-# Sentence-BERT 相关
+# 索引名称配置
+TEXT_INDEX = "text_index"
+IMAGE_INDEX = "image_index"  # ResNet 特征索引
+IMAGE_CLIP_INDEX = "image_clip_index"  # CLIP 特征索引
+
+# 索引维度配置
+TEXT_DIM = 384  # SBERT 嵌入维度
+IMAGE_DIM = 2048  # ResNet 特征维度
+IMAGE_CLIP_DIM = 512  # CLIP 特征维度
+
+# Sentence-BERT 模型配置
 SENTENCE_BERT_MODEL = "paraphrase-MiniLM-L6-v2"
 
 # 目录路径
