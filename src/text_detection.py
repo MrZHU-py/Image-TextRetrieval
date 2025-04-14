@@ -4,7 +4,6 @@ Author: ZPY
 TODO: 
 '''
 import cv2
-import numpy as np
 
 def is_screenshot(image):
     """判断图像是否为截图"""

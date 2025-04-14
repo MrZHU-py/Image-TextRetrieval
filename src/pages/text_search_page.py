@@ -1,10 +1,8 @@
 '''
-FilePath: \Image-TextRetrieval\src\pages\text_search_page.py
+FilePath: \\Image-TextRetrieval\\src\\pages\\text_search_page.py
 Author: ZPY
 TODO: 文搜文界面
 '''
-import cv2
-import numpy as np
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QFileDialog
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
@@ -138,7 +136,7 @@ class TextSearchPage(QWidget):
                 return
 
             # 调用文本检索逻辑
-            search_results = search_text(query_text, top_k=5)
+            search_results = search_text(query_text, top_k=10)
 
             # 显示检索结果
             if search_results:

@@ -3,6 +3,8 @@ numpy
 pytesseract
 easyocr
 elasticsearch
-sentence-transformers
 PyQt6
 loguru
+langdetect
+googletrans==4.0.0-rc1
+transformers

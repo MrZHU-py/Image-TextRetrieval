@@ -10,7 +10,6 @@ from PIL import Image  # 导入 Pillow
 import numpy as np
 import config
 from paddleocr import PaddleOCR
-import os
 
 # 设置 Tesseract 位置
 pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
@@ -40,7 +39,6 @@ def extract_text_paddleocr(image_path):
             raise ValueError(f"无法加载图像，请检查路径或文件格式：{image_path}")
 
         # 使用 PaddleOCR 进行文本提取
-        from paddleocr import PaddleOCR
         ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 支持中文
         result = ocr.ocr(image, cls=True)
 

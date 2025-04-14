@@ -1,13 +1,14 @@
 '''
 FilePath: \\Image-TextRetrieval\\src\\gui.py
 Author: ZPY
-TODO: 使用 QStackedWidget 管理界面，修复界面叠加问题
+TODO: GUI 主界面，负责创建和管理各个页面的布局和交互逻辑
 '''
-from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QApplication
+from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QApplication # 使用 QStackedWidget 管理界面，修复界面叠加问题
 import sys
 from src.pages.text_search_page import TextSearchPage
 from src.pages.image_search_page import ImageSearchPage
-from src.pages.empty_page import EmptyPage
+from src.pages.text_to_image_page import TextToImagePage  # 新增文搜图页面
+from src.pages.image_to_text_page import ImageToTextPage  # 新增图搜文页面
 
 class ImageTextRetrievalApp(QMainWindow):
     def __init__(self):
@@ -16,7 +17,7 @@ class ImageTextRetrievalApp(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Image-Text Retrieval 基于图像的文本检索系统")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1000, 700)  # 调整窗口大小
 
         # 创建菜单栏
         menu_bar = self.menuBar()
@@ -41,8 +42,8 @@ class ImageTextRetrievalApp(QMainWindow):
         # 添加页面
         self.stacked_widget.addWidget(TextSearchPage())  # 文搜文页面
         self.stacked_widget.addWidget(ImageSearchPage())  # 图搜图页面
-        self.stacked_widget.addWidget(EmptyPage("文搜图功能暂未实现"))  # 文搜图页面
-        self.stacked_widget.addWidget(EmptyPage("图搜文功能暂未实现"))  # 图搜文页面
+        self.stacked_widget.addWidget(TextToImagePage())  # 文搜图页面
+        self.stacked_widget.addWidget(ImageToTextPage())  # 图搜文页面
 
     def switch_page(self, index):
         """切换 QStackedWidget 的页面"""

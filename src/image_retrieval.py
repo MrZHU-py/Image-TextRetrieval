@@ -1,50 +1,46 @@
 '''
-FilePath: \\Image-TextRetrieval\\src\\image_retrieval.py
+FilePath: \Image-TextRetrieval\src\image_retrieval.py
 Author: ZPY
 TODO: 
 '''
 import os
-import numpy as np
 import torch
-import torchvision.transforms as transforms
-from torchvision import models
+from transformers import CLIPProcessor, CLIPModel
 from elasticsearch import Elasticsearch
 import config
 from PIL import Image
 import hashlib
 import shutil
-import clip
+import csv
 
 # 初始化 Elasticsearch
 es = Elasticsearch([{'host': config.ELASTICSEARCH_HOST, 'port': config.ELASTICSEARCH_PORT, 'scheme': 'http'}])
 
-# # 加载预训练的 ResNet 模型
-# model = models.resnet50(pretrained=True)
-# model = torch.nn.Sequential(*list(model.children())[:-1])  # 去掉最后的分类层
-# model.eval()
-
-# 加载 CLIP 模型（用clip模型替代ResNet）
+# 加载预训练的 CLIP 模型
 device = "cuda" if torch.cuda.is_available() else "cpu"
-clip_model, preprocess = clip.load("ViT-B/32", device=device)
+clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-# 图像预处理
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+def extract_text_features(text):
+    """使用 CLIP 提取文本特征向量"""
+    try:
+        inputs = clip_processor(text=[text], return_tensors="pt", padding=True, truncation=True).to(device)
+        with torch.no_grad():
+            text_features = clip_model.get_text_features(**inputs)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        return text_features.cpu().numpy().squeeze()
+    except Exception as e:
+        print(f"Error extracting text features: {e}")
+        raise
 
 def extract_image_features(image_path):
     """使用 CLIP 提取图像特征向量"""
     try:
-        # 预处理图像
-        image = preprocess(Image.open(image_path)).unsqueeze(0).to(device)
-
-        # 提取特征
+        inputs = clip_processor(images=Image.open(image_path), return_tensors="pt").to(device)
         with torch.no_grad():
-            features = clip_model.encode_image(image).cpu().numpy().squeeze()
-        print(f"Features extracted for image: {image_path}, Shape: {features.shape}")
-        return features
+            image_features = clip_model.get_image_features(**inputs)
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        return image_features.cpu().numpy().squeeze()
     except Exception as e:
         print(f"Error extracting features for image {image_path}: {e}")
         raise
@@ -92,7 +88,7 @@ def index_image(image_path):
         print(f"Error indexing image {image_path}: {e}")
 
 # 基于 ResNet 的图像检索函数
-def search_image(image_path, top_k=5):
+def search_image(image_path, top_k=10):
     """在 Elasticsearch 中进行图像相似性搜索"""
     query_features = extract_image_features(image_path).tolist()
     response = es.search(
@@ -135,25 +131,86 @@ def index_image_with_clip(image_path):
         print(f"Error indexing image with CLIP {image_path}: {e}")
 
 # 基于 CLIP 的图像检索函数
-def search_image_with_clip(image_path, top_k=5):
+def search_image_with_clip(image_path, top_k=10):
     """在 Elasticsearch 中使用 CLIP 特征进行图像相似性搜索"""
-    query_features = extract_image_features(image_path).tolist()
+    try:
+        query_features = extract_image_features(image_path).tolist()
+        response = es.search(
+            index=config.IMAGE_CLIP_INDEX,
+            body={
+                "size": top_k,
+                "query": {
+                    "script_score": {
+                        "query": {"match_all": {}},
+                        "script": {
+                            "source": "cosineSimilarity(params.query_vector, 'features') + 1.0",
+                            "params": {"query_vector": query_features}
+                        }
+                    }
+                }
+            }
+        )
+        return response['hits']['hits']
+    except Exception as e:
+        print(f"Error in search_image_with_clip: {e}")
+        return []
+
+def load_captions(captions_file):
+    """加载 captions.csv 文件"""
+    captions = {}
+    with open(captions_file, mode='r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            image_id = row["image_id"]
+            caption = row["caption"]
+            if image_id not in captions:
+                captions[image_id] = []
+            captions[image_id].append(caption)
+    return captions
+
+def search_text_with_image(image_path, top_k=10):
+    """根据图像检索相关文本"""
+    try:
+        # 提取图像特征
+        image_features = extract_image_features(image_path).tolist()
+
+        # 构造 Elasticsearch 查询
+        query = {
+            "size": top_k,
+            "query": {
+                "script_score": {
+                    "query": {"match_all": {}},
+                    "script": {
+                        "source": "cosineSimilarity(params.query_vector, 'text_features') + 1.0",
+                        "params": {"query_vector": image_features}
+                    }
+                }
+            }
+        }
+
+        # 在 text_clip_index 中执行检索
+        response = es.search(index="text_clip_index", body=query)
+        return response['hits']['hits']
+    except Exception as e:
+        print(f"Error in search_text_with_image: {e}")
+        return []
+
+def search_image_with_text(query_text, top_k=10):
+    """根据文本检索相关图像"""
+    text_features = extract_text_features(query_text).tolist()
     response = es.search(
-        index=config.IMAGE_CLIP_INDEX,  # 使用 CLIP 索引
+        index="cross_modal_index",
         body={
             "size": top_k,
             "query": {
                 "script_score": {
                     "query": {"match_all": {}},
                     "script": {
-                        "source": "cosineSimilarity(params.query_vector, 'features') + 1.0",
-                        "params": {"query_vector": query_features}
+                        "source": "cosineSimilarity(params.query_vector, 'image_features') + 1.0",
+                        "params": {"query_vector": text_features}
                     }
                 }
             }
         }
     )
-    results = response['hits']['hits']
-    for result in results:
-        print(f"Found image with Hash ID: {result['_id']}, Score: {result['_score']}")
-    return results
+    return response['hits']['hits']
