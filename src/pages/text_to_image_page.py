@@ -1,22 +1,14 @@
 '''
-FilePath: \Image-TextRetrieval\src\pages\text_to_image_page.py
+FilePath: \\Image-TextRetrieval\\src\\pages\\text_to_image_page.py
 Author: ZPY
 TODO: 文搜图界面
 '''
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QScrollArea
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
-from src.image_operations import search_image_with_text
-from googletrans import Translator
-import re  # 导入正则表达式模块
+from src.image_retrieval import search_image_with_text
 import os  # 导入操作系统模块
 import config  # 导入配置模块
-
-translator = Translator()  # 初始化翻译器
-
-def contains_chinese(text):
-    """判断文本是否包含中文字符"""
-    return bool(re.search(r'[\u4e00-\u9fff]', text))
 
 class TextToImagePage(QWidget):
     def __init__(self):
@@ -60,16 +52,8 @@ class TextToImagePage(QWidget):
             return
 
         try:
-            # 检测语言并翻译为英文
-            if contains_chinese(query_text):
-                translated_text = translator.translate(query_text, src="zh-CN", dest="en").text  # 修正语言代码为 zh-CN
-
-            else:
-                translated_text = query_text
-                print(f"Text does not require translation: {translated_text}")
-
             # 调用检索逻辑
-            results = search_image_with_text(translated_text, top_k=10)
+            results = search_image_with_text(query_text, top_k=10)
 
             # 清空之前的检索结果
             for i in reversed(range(self.results_layout.count())):
@@ -80,6 +64,8 @@ class TextToImagePage(QWidget):
                 for result in results:
                     # 使用索引中存储的 image_path 字段
                     image_path = result['_source'].get('image_path', '')
+                    if not os.path.isabs(image_path):
+                        image_path = os.path.join(config.DATA_DIR, image_path)
                     if os.path.exists(image_path):  # 确保图片路径存在
                         result_label = QLabel(self)
                         pixmap = QPixmap(image_path)

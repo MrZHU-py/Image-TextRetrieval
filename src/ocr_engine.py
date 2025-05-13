@@ -1,50 +1,113 @@
 '''
-FilePath: \\Image-TextRetrieval\\src\\ocr_engine.py
+FilePath: \Image-TextRetrieval\src\ocr_engine.py
 Author: ZPY
-TODO: 整合 PaddleOCR 和预处理模块
+TODO: OCR 引擎模块：提供文字识别功能
 '''
-import pytesseract
-import easyocr
 import cv2
-from PIL import Image  # 导入 Pillow
+import logging
 import numpy as np
-import config
+import easyocr
+import pytesseract
 from paddleocr import PaddleOCR
+import config  # 引入全局配置
 
-# 设置 Tesseract 位置
-pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
-reader = easyocr.Reader(['en', 'ch_sim'])  # 使用 EasyOCR 进行 OCR 识别
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levellevel)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-def extract_text_tesseract(image):
-    """使用 Tesseract 进行 OCR 识别"""
-    # 将 OpenCV 图像 (NumPy 数组) 转换为 Pillow 图像
-    if isinstance(image, np.ndarray):
-        image = Image.fromarray(image)
-    return pytesseract.image_to_string(image, lang='chi_sim')
+class OCREngine:
+    """OCR 引擎：PaddleOCR -> EasyOCR -> Tesseract"""
 
-def extract_text_easyocr(image):
-    """使用 EasyOCR 进行 OCR 识别"""
-    results = reader.readtext(image)
-    return " ".join([res[1] for res in results])
+    def __init__(self,
+                 paddle_lang='ch',
+                 use_angle_cls=True,
+                 det=True, rec=True, cls=True,
+                 easyocr_langs=None,
+                 easyocr_gpu=False,
+                 tesseract_lang='chi_sim+eng',
+                 tesseract_psm=6,
+                 tesseract_oem=3):
+        # PaddleOCR 初始化
+        try:
+            self.paddle = PaddleOCR(
+                lang=paddle_lang,
+                use_angle_cls=use_angle_cls,
+                det=det, rec=rec, cls=cls,
+                enable_mkldnn=True
+            )
+            logger.info("PaddleOCR 初始化成功")
+        except Exception as e:
+            logger.error(f"PaddleOCR 初始化失败: {e}")
+            self.paddle = None
 
-def extract_text_paddleocr(image_path):
-    """使用 PaddleOCR 提取文本"""
-    try:
-        # 使用 open 和 cv2.imdecode 加载图片，解决中文路径问题
-        with open(image_path, 'rb') as f:
-            file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
-            image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        # EasyOCR 初始化
+        if easyocr_langs is None:
+            easyocr_langs = ['ch_sim', 'en']
+        try:
+            self.easyocr = easyocr.Reader(easyocr_langs, gpu=easyocr_gpu)
+            logger.info("EasyOCR 初始化成功")
+        except Exception as e:
+            logger.error(f"EasyOCR 初始化失败: {e}")
+            self.easyocr = None
 
-        if image is None:
-            raise ValueError(f"无法加载图像，请检查路径或文件格式：{image_path}")
+        # Tesseract 参数
+        self.tess_lang = tesseract_lang
+        self.tess_cfg = f'--oem {tesseract_oem} --psm {tesseract_psm}'
 
-        # 使用 PaddleOCR 进行文本提取
-        ocr = PaddleOCR(use_angle_cls=True, lang='ch')  # 支持中文
-        result = ocr.ocr(image, cls=True)
+    def extract_text(self, image: np.ndarray) -> str:
+        """
+        纯文本识别：
+        1. PaddleOCR
+        2. EasyOCR（Fallback）
+        3. Tesseract（最终回退）
+        """
+        text = ""
+        # 1) PaddleOCR
+        if self.paddle:
+            try:
+                res = self.paddle.ocr(image, cls=True)
+                lines = [line[1][0] for block in res for line in block if line[1][0].strip()]
+                text = "\n".join(lines).strip()
+            except Exception as e:
+                logger.warning(f"PaddleOCR 识别失败: {e}")
 
-        # 提取文本
-        extracted_text = "\n".join([line[1][0] for line in result[0]])
-        return extracted_text
-    except Exception as e:
-        print(f"Error in extract_text_paddleocr: {e}")
-        return ""
+        # 2) EasyOCR
+        if not text and self.easyocr:
+            try:
+                rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                easy_res = self.easyocr.readtext(rgb, detail=0, paragraph=False)
+                text = "\n".join([t for t in easy_res if t.strip()]).strip()
+            except Exception as e:
+                logger.warning(f"EasyOCR 识别失败: {e}")
+
+        # 3) Tesseract
+        if not text:
+            try:
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                text = pytesseract.image_to_string(gray,
+                                                   lang=self.tess_lang,
+                                                   config=self.tess_cfg).strip()
+            except Exception as e:
+                logger.error(f"Tesseract 识别失败: {e}")
+                text = ""
+        return text
+
+# 全局 OCR 引擎实例
+ocr_engine = OCREngine(
+    paddle_lang='ch',
+    use_angle_cls=True,
+    det=True, rec=True, cls=True,
+    easyocr_langs=['ch_sim', 'en'],
+    easyocr_gpu=False,
+    tesseract_lang='chi_sim+eng',
+    tesseract_psm=6,
+    tesseract_oem=3
+)
+
+def extract_text_ocr(image: np.ndarray) -> str:
+    return ocr_engine.extract_text(image)
+
+

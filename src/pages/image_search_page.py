@@ -22,17 +22,17 @@ class ImageSearchPage(QWidget):
         # 左侧布局：上传图片和显示区域
         left_layout = QVBoxLayout()
         self.image_label = QLabel("未上传图片")
-        self.image_label.setFixedSize(400, 400)  # 调整图片显示区域大小
+        self.image_label.setFixedSize(400, 600)  # 调整图片显示区域大小
         self.image_label.setStyleSheet("border: 1px solid black;")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.upload_image_btn = QPushButton("上传图片", self)
-        self.upload_image_btn.setFixedWidth(self.image_label.width())  # 按钮宽度与图片显示框一致
+        # self.upload_image_btn.setFixedWidth(self.image_label.width())  # 按钮宽度与图片显示框一致
         self.upload_image_btn.clicked.connect(self.search_similar_images)
 
         # 添加到左侧布局
         left_layout.addWidget(self.image_label)
-        left_layout.addWidget(self.upload_image_btn)
+        left_layout.addWidget(self.upload_image_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # 右侧布局：检索结果显示区域
         self.scroll_area = QScrollArea(self)
@@ -73,7 +73,7 @@ class ImageSearchPage(QWidget):
             if results:
                 for result in results:
                     # 使用 `_id` 字段作为图片路径
-                    image_path = os.path.join(config.DATA_DIR, f"{result['_id']}.jpg")
+                    image_path = os.path.join(config.DATA_DIR, result['_id'])
                     if os.path.exists(image_path):  # 确保图片路径存在
                         result_label = QLabel(self)
                         pixmap = QPixmap(image_path)

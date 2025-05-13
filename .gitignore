@@ -1,0 +1,9 @@
+# 在远程仓库中忽略
+*.jpg
+*.jpeg
+*.png
+*.pyc
+data
+ai_challenger_test_a_20180103
+.vscode
+__pycache__
