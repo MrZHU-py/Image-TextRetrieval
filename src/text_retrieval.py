@@ -1,13 +1,11 @@
 '''
 FilePath: \Image-TextRetrieval\src\text_retrieval.py
 Author: ZPY
-TODO: 
-'''
-'''
-FilePath: \Image-TextRetrieval\src\text_retrieval.py
-Author: ZPY
 TODO: 连接 Elasticsearch，提供索引和搜索功能
 '''
+import config
+import numpy as np
+from config import es_client as es  # 使用配置文件中的 ES 实例
 import config
 import numpy as np
 from config import es_client as es  # 使用配置文件中的 ES 实例

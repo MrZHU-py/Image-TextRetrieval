@@ -4,12 +4,16 @@ Author: ZPY
 TODO: 
 '''
 import os
+import numpy as np
 import torch
 from PIL import Image
 import hashlib
 import shutil
+from src.text_retrieval import search_text               # 文搜文
 import config
 from config import es_client as es  # 使用配置文件中的 ES 实例
+from src.text_retrieval import search_text
+from PyQt6.QtWidgets import QMessageBox
 
 # 自动选择 GPU 或 CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -57,7 +61,19 @@ def save_image_to_data_dir(image_path, image_hash):
         shutil.copy(image_path, new_image_path)
     return new_image_path
 
+def check_es_connection():
+    try:
+        if not es.ping():
+            QMessageBox.critical(None, "Elasticsearch连接失败", "无法连接到Elasticsearch，请检查服务是否启动。")
+            return False
+        return True
+    except Exception:
+        QMessageBox.critical(None, "Elasticsearch连接失败", "无法连接到Elasticsearch，请检查服务是否启动。")
+        return False
+
 def index_image_with_clip(image_path):
+    if not check_es_connection():
+        return
     try:
         image_hash = calculate_image_hash(image_path)
         ext = os.path.splitext(image_path)[-1]
@@ -75,6 +91,8 @@ def index_image_with_clip(image_path):
         print(f"Error indexing image with CLIP {image_path}: {e}")
 
 def search_image_with_clip(image_path, top_k=10):
+    if not check_es_connection():
+        return []
     try:
         query_features = extract_image_features(image_path)
         if query_features is None:
@@ -112,6 +130,8 @@ def search_text_with_image(image_path, top_k=10):
     函数从给定的图片中提取特征，然后使用这些特征作为查询向量，
     在Elasticsearch中搜索与之最相关的文本。检索结果按相关度排序。
     """
+    if not check_es_connection():
+        return []
     try:
         image_features = extract_image_features(image_path) # 提取图像特征
         if image_features is None:
@@ -140,6 +160,8 @@ def search_text_with_image(image_path, top_k=10):
         return []
 
 def search_image_with_text(query_text, top_k=10):
+    if not check_es_connection():
+        return []
     try:
         text_features = extract_text_features(query_text)
         if text_features is None:
@@ -163,3 +185,110 @@ def search_image_with_text(query_text, top_k=10):
     except Exception as e:
         print(f"Error in search_image_with_text: {e}")
         return []
+
+def search_long_text_with_image(image_path, top_k_clip=5, top_k_text=3):
+    """
+    先用 Chinese-CLIP 做图搜短文本（text_clip_index），
+    再用 M3E 做文搜文（text_index），
+    合并并去重后返回最终长文本结果。
+    """
+    if not check_es_connection():
+        return []
+    # 第一步：CLIP 图搜文，得到短文本 annotation_hits
+    clip_hits = search_text_with_image(image_path, top_k=top_k_clip)
+    if not clip_hits:
+        return []
+
+    # 提取所有短文本
+    short_texts = [hit['_source'].get('text', '') for hit in clip_hits]
+
+    # 第二步：对每个短文本，用 M3E 模型做一次长文本检索
+    all_long_hits = []
+    for txt in short_texts:
+        if not txt:
+            continue
+        # search_text 返回 M3E 检索结果，每个带 _score 和 _source{content,url,…}
+        long_hits = search_text(txt, top_k=top_k_text)
+        all_long_hits.extend(long_hits)
+
+    # 合并、按 _score 降序、并去掉重复 URL 或内容相同的文档
+    # 这里我们用 URL 作为去重 key，如果没有 URL，则用全文内容
+    seen = set()
+    unique_hits = []
+    for hit in sorted(all_long_hits, key=lambda x: x.get('_score', 0), reverse=True):
+        src = hit.get('_source', {})
+        key = src.get('url') or src.get('content')
+        if key and key not in seen:
+            seen.add(key)
+            unique_hits.append(hit)
+
+    return unique_hits
+
+# 深度检索相关代码
+def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+    """计算两个向量的余弦相似度"""
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+def dedup_short_texts(short_texts, sim_threshold=0.9):
+    """
+    输入：短文本列表
+    输出：去重后的短文本列表
+    """
+    reps = []   # 保存已选代表文本
+    feats = []  # 对应的特征向量
+    for txt in short_texts:
+        try:
+            f = extract_text_features(txt)
+        except Exception:
+            continue
+        if f is None:
+            continue
+
+        # 检查与已有代表的相似度
+        if any(cosine_sim(f, rf) > sim_threshold for rf in feats):
+            continue
+        reps.append(txt)
+        feats.append(f)
+    return reps
+
+def search_deep_text_with_image(image_path, top_k_clip=5, sim_threshold=0.9):
+    """
+    深度检索（无多线程）：
+      1. 用 CLIP 拿到 top_k_clip 条短文本；
+      2. 对短文本去重（相似度 > sim_threshold 视为重复）；
+      3. 顺序对每条去重后文本做 M3E 文搜文 top_k=1；
+      4. 合并并按 URL/内容去重，返回最终结果列表。
+    """
+    # 1. 快速检索：拿到短文本
+    clip_hits = search_text_with_image(image_path, top_k=top_k_clip)
+    if not clip_hits:
+        return []
+
+    short_texts = [hit['_source'].get('text', '') for hit in clip_hits]
+    # 2. 去重
+    unique_texts = dedup_short_texts(short_texts, sim_threshold=sim_threshold)
+    if not unique_texts:
+        return []
+
+    # 3. 顺序二次检索
+    long_hits = []
+    for txt in unique_texts:
+        try:
+            hits = search_text(txt, top_k=1)
+        except Exception:
+            continue
+        if hits:
+            long_hits.append(hits[0])
+
+    # 4. 最终合并去重
+    seen = set()
+    final_hits = []
+    # 按_score降序
+    for hit in sorted(long_hits, key=lambda x: x.get('_score', 0), reverse=True):
+        src = hit.get('_source', {})
+        key = src.get('url') or src.get('content')
+        if key and key not in seen:
+            seen.add(key)
+            final_hits.append(hit)
+
+    return final_hits

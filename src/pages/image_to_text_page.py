@@ -5,10 +5,12 @@ TODO: 图搜文界面
 '''
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QFileDialog, QScrollArea, QApplication
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from src.image_retrieval import search_text_with_image
 
 class ImageToTextPage(QWidget):
+    switch_back = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -21,6 +23,14 @@ class ImageToTextPage(QWidget):
 
         # 左侧布局：上传图片和显示区域
         left_layout = QVBoxLayout()
+        
+        # 返回按钮
+        back_btn = QPushButton("← 返回")
+        back_btn.setFixedSize(100, 30)
+        back_btn.clicked.connect(self.switch_back.emit)
+        left_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+        
+        # 图片展示区域
         self.image_label = QLabel("未上传图片")
         self.image_label.setFixedSize(500, 600)  # 调整图片显示区域大小
         self.image_label.setStyleSheet("border: 1px solid black;")

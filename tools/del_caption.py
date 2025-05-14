@@ -1,11 +1,15 @@
+'''
+FilePath: \Image-TextRetrieval\tools\del_caption.py
+Author: ZPY
+TODO: 
+'''
 from elasticsearch import Elasticsearch
-import config
 import sys
 
 # 初始化 Elasticsearch 客户端
 es = Elasticsearch([{
-    'host': config.ELASTICSEARCH_HOST,
-    'port': config.ELASTICSEARCH_PORT,
+    'host': 'localhost',
+    'port': 9200,
     'scheme': 'http'
 }])
 
@@ -13,7 +17,7 @@ def delete_caption(text: str):
     """
     删除 text_clip_index 中 text 字段匹配的文档
     """
-    index_name = config.TEXT_CLIP_INDEX
+    index_name = "text_clip_index"
     query = {
         "query": {
             "match_phrase": {"text": text}
