@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\config.py
+FilePath: \\Image-TextRetrieval\\config.py
 Author: ZPY
 TODO: 配置文件：存储全局配置参数
 '''

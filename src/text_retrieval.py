@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\text_retrieval.py
+FilePath: \\Image-TextRetrieval\\src\\text_retrieval.py
 Author: ZPY
 TODO: 连接 Elasticsearch，提供索引和搜索功能
 '''

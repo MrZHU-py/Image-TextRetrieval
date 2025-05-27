@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\pages\ocr_search_page.py
+FilePath: \\Image-TextRetrieval\\src\\pages\\ocr_search_page.py
 # Author: ZPY
 # TODO: 即时OCR检索+编辑重试界面（自适应布局，图片区域动态伸缩）
 '''
@@ -37,11 +37,11 @@ class OCRSearchPage(QWidget):
         back_btn.clicked.connect(self.switch_back.emit)
         left_layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # 图片展示，自适应伸缩
+        # 图片展示，自适应伸缩，但不让 QLabel 因 pixmap 改变自己的 sizeHint
         self.image_label = QLabel("未上传图片")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.image_label.setStyleSheet("border: 1px solid black;")
+        self.image_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         left_layout.addWidget(self.image_label, stretch=1)
 
         # 上传按钮
@@ -83,7 +83,7 @@ class OCRSearchPage(QWidget):
         self.edit_btn.hide()
 
     def resizeEvent(self, event):
-        # 确保图片自适应缩放
+        # 只在 self.pixmap 不为空时，才按当前 QLabel 大小做等比例缩放
         if self.pixmap:
             scaled = self.pixmap.scaled(
                 self.image_label.size(),
@@ -99,20 +99,32 @@ class OCRSearchPage(QWidget):
         )
         if not path:
             return
-        # 读取并存储原始pixmap
+
+        # 1. 读取并存储原始 pixmap
         self.pixmap = QPixmap(path)
-        # 初次缩放展示
-        self.resizeEvent(None)
-        # OCR 提取
+        if self.pixmap.isNull():
+            return
+
+        # 2. “初次缩放”——直接用 image_label 当前大小做一次等比例缩放并 setPixmap
+        scaled = self.pixmap.scaled(
+            self.image_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.image_label.setPixmap(scaled)
+
+        # 3. OCR 提取逻辑（保持你现有的流程）
         _, proc = preprocess_image(path)
         text = extract_text_ocr(proc) or ""
         self.ocr_text = text
         del proc; gc.collect()
-        # 文本检索
+
+        # 4. 文本检索并显示
         hits = search_text(text, top_k=10)
         html = format_search_results(hits)
         self.result_view.setHtml(html)
-        # 显示编辑提示
+
+        # 5. 显示“编辑”提示
         self.prompt_label.show()
         self.edit_btn.show()
 

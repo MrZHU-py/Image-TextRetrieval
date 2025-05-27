@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\ocr_engine.py
+FilePath: \\Image-TextRetrieval\\src\\ocr_engine.py
 Author: ZPY
 TODO: OCR 引擎模块：提供文字识别功能
 '''

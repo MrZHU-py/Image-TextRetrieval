@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\tools\del_caption.py
+FilePath: \\Image-TextRetrieval\\tools\\del_caption.py
 Author: ZPY
 TODO: 
 '''

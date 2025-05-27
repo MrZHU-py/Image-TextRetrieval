@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\image_retrieval.py
+FilePath: \\Image-TextRetrieval\\src\\image_retrieval.py
 Author: ZPY
 TODO: 
 '''
@@ -186,43 +186,41 @@ def search_image_with_text(query_text, top_k=10):
         print(f"Error in search_image_with_text: {e}")
         return []
 
-def search_long_text_with_image(image_path, top_k_clip=5, top_k_text=3):
+def search_image_with_clip_and_text(image_path, query_text, top_k=10, img_k=50):
     """
-    先用 Chinese-CLIP 做图搜短文本（text_clip_index），
-    再用 M3E 做文搜文（text_index），
-    合并并去重后返回最终长文本结果。
+    先用 CLIP 对图像检索 img_k 条候选，再用文本特征对这批候选重新打分并返回 top_k。
+    如果在任何一步出错或特征为空，则退而展示纯图像检索的前 top_k。
     """
-    if not check_es_connection():
-        return []
-    # 第一步：CLIP 图搜文，得到短文本 annotation_hits
-    clip_hits = search_text_with_image(image_path, top_k=top_k_clip)
-    if not clip_hits:
+    # 1. 图像候选
+    img_hits = search_image_with_clip(image_path, top_k=img_k)
+    if not img_hits:
         return []
 
-    # 提取所有短文本
-    short_texts = [hit['_source'].get('text', '') for hit in clip_hits]
+    # 2. 文本特征
+    text_vec = extract_text_features(query_text)
+    if text_vec is None:    # 文本特征失败时直接返回前 top_k 图像结果
+        return img_hits[:top_k] 
 
-    # 第二步：对每个短文本，用 M3E 模型做一次长文本检索
-    all_long_hits = []
-    for txt in short_texts:
-        if not txt:
-            continue
-        # search_text 返回 M3E 检索结果，每个带 _score 和 _source{content,url,…}
-        long_hits = search_text(txt, top_k=top_k_text)
-        all_long_hits.extend(long_hits)
-
-    # 合并、按 _score 降序、并去掉重复 URL 或内容相同的文档
-    # 这里我们用 URL 作为去重 key，如果没有 URL，则用全文内容
-    seen = set()
-    unique_hits = []
-    for hit in sorted(all_long_hits, key=lambda x: x.get('_score', 0), reverse=True):
+    # 3. 对每个候选取出它的 features，然后计算文本相似度
+    scored = []
+    for hit in img_hits:
         src = hit.get('_source', {})
-        key = src.get('url') or src.get('content')
-        if key and key not in seen:
-            seen.add(key)
-            unique_hits.append(hit)
+        feat = src.get('features')
+        if feat is None:
+            continue
+        feat_vec = np.array(feat, dtype=np.float32)
+        # 归一化后计算余弦相似度
+        txt = text_vec / np.linalg.norm(text_vec)
+        img = feat_vec / np.linalg.norm(feat_vec)
+        cos_sim = float(np.dot(txt, img))
+        scored.append((cos_sim, hit))
 
-    return unique_hits
+    if not scored:
+        return img_hits[:top_k]
+
+    # 4. 按文本相似度降序，取 top_k
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [hit for _, hit in scored[:top_k]]
 
 # 深度检索相关代码
 def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
@@ -251,15 +249,15 @@ def dedup_short_texts(short_texts, sim_threshold=0.9):
         feats.append(f)
     return reps
 
-def search_deep_text_with_image(image_path, top_k_clip=5, sim_threshold=0.9):
+def search_deep_text_with_image(image_path, top_k_clip=10, sim_threshold=0.9):
     """
-    深度检索（无多线程）：
+    深度检索：
       1. 用 CLIP 拿到 top_k_clip 条短文本；
       2. 对短文本去重（相似度 > sim_threshold 视为重复）；
       3. 顺序对每条去重后文本做 M3E 文搜文 top_k=1；
       4. 合并并按 URL/内容去重，返回最终结果列表。
     """
-    # 1. 快速检索：拿到短文本
+    # 1. 快速检索：拿到与图片相关的标注
     clip_hits = search_text_with_image(image_path, top_k=top_k_clip)
     if not clip_hits:
         return []

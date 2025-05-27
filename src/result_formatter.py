@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\result_formatter.py
+FilePath: \\Image-TextRetrieval\\src\\result_formatter.py
 Author: ZPY
 TODO: 检索结果格式化模块
 '''

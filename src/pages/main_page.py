@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\src\pages\main_page.py
+FilePath: \\Image-TextRetrieval\\src\\pages\\main_page.py
 Author: ZPY
 TODO: 主页面，添加快速检索与深度检索入口
 '''

@@ -1,11 +1,10 @@
 '''
-FilePath: \Image-TextRetrieval\src\preprocessing.py
+FilePath: \\Image-TextRetrieval\\src\\preprocessing.py
 Author: ZPY
 TODO: 图像预处理模块
 '''
 import cv2
 import numpy as np
-
 
 def is_screenshot(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -29,7 +28,7 @@ def preprocess_image(image_path_or_array, enhance=True, deskew=True, upscale=Tru
     orig = image.copy()
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # 放大低分辨率
+    # 对低像素图像放大低分辨率
     if upscale and min(gray.shape) < 40:
         scale = 2 if min(gray.shape) < 20 else 1.5
         gray = cv2.resize(gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
@@ -39,13 +38,13 @@ def preprocess_image(image_path_or_array, enhance=True, deskew=True, upscale=Tru
         clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
 
-    # 二值化（仅截图或对比度低）
+    # 对截图做二值化
     if is_screenshot(image) or np.std(gray) < 30:
         proc = cv2.adaptiveThreshold(
             gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv2.THRESH_BINARY, 25, 15
         )
-    else:
+    else:   # 对照片转灰度
         proc = gray
 
     # 倾斜校正

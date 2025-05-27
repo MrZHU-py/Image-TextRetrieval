@@ -1,3 +1,8 @@
+'''
+FilePath: \\Image-TextRetrieval\\src\\pages\\animated_button.py
+Author: ZPY
+TODO: 
+'''
 # File: src/pages/animated_button.py
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QSize
@@ -45,7 +50,7 @@ class AnimatedButton(QPushButton):
         self._anim.setEndValue(self._hover_size)
         self._anim.start()
         super().enterEvent(event)
-
+        
     def leaveEvent(self, event):
         # 恢复到原始大小
         self._anim.stop()

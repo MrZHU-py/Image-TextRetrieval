@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\tools\delete_bad_doc.py
+FilePath: \\Image-TextRetrieval\\tools\\delete_bad_doc.py
 Author: ZPY
 TODO: 
 '''

@@ -1,5 +1,5 @@
 '''
-FilePath: \Image-TextRetrieval\create_index.py
+FilePath: \\Image-TextRetrieval\\create_index.py
 Author: ZPY
 TODO: 初始化 Elasticsearch 索引
 '''

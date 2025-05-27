@@ -1,14 +1,9 @@
 '''
-FilePath: \Image-TextRetrieval\src\gui.py
-Author: ZPY
-TODO: 
-'''
-'''
-FilePath: \Image-TextRetrieval\src\gui.py
+FilePath: \\Image-TextRetrieval\\src\gui.py
 Author: ZPY
 TODO: 用户图像界面交互
 '''
-from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QApplication, QColorDialog, QFontDialog
+from PyQt6.QtWidgets import QMainWindow, QStackedWidget, QApplication, QFontDialog
 from PyQt6.QtGui import QIcon, QAction
 from config import ICON_DIR
 from src.pages.main_page import MainPage
@@ -80,7 +75,7 @@ class ImageTextRetrievalApp(QMainWindow):
             QApplication.instance().setFont(font)
 
     def init_ui(self):
-        self.setWindowTitle("Image-Text Retrieval 系统")
+        self.setWindowTitle("基于图像的文本检索系统")
         self.setGeometry(100, 100, 1000, 700)
         self.setWindowIcon(QIcon(ICON_DIR + "/csuft_logo.jpg"))
 
